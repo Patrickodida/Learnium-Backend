@@ -1,9 +1,11 @@
-const express = require('express')
-const router = express.Router()
+const express = require("express");
+const router = express.Router();
+const { register, login, getAllUsers } = require("../Controllers/authController");
+const { registerSchema, loginSchema } = require("../Utils/joi.schema");
+const { validate } = require("../Utils/joi.validator");
 
-
-router.get('/', (req, res) => {
-    res.json({ message: 'Auth route working'})
-});
+router.post("/register", validate(registerSchema), register);
+router.post("/login", validate(loginSchema), login);
+router.get("/", getAllUsers);
 
 module.exports = router;

@@ -1,8 +1,11 @@
 const express = require('express')
 const router = express.Router()
+const { createCourse, getAllCourses, updateCourse, deleteCourse } = require('../Controllers/courseController')
+const validateToken = require('../Middleware/validateToken')
 
-router.get('/', (req, res) => {
-    res.json({ message: 'Course route working.'})
-});
+router.get('/', getAllCourses);
+router.post('/', validateToken, createCourse);
+router.put('/:id', validateToken, updateCourse);
+router.delete('/:id', validateToken, deleteCourse);
 
 module.exports = router;
