@@ -14,3 +14,19 @@ exports.enrollUser = async (req, res) => {
         res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: err.message });
     }
 };
+
+// Get all enrollments for a user/ student
+exports.getUserEnrollments = async (req, res) => {
+    const { userId } = req.params;
+
+    try {
+        const enrollments = await prisma.enrollment.findMany({
+            where: { userId },
+            include: { course: true },
+        });
+        res.json(enrollments);
+    } catch (err) {
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: err.message });
+    }
+};
+
