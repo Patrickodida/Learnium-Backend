@@ -75,3 +75,23 @@ exports.deleteLesson = async (req, res) => {
         res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: err.message });
     }
 };
+
+// Enable Instructors to re-order lessons
+exports.reorderLessons = async (req, res) => {
+  const { courseId } = req.params;
+  // Array of lesson IDS in new order
+  const { orderedLessonIds } = req.body;
+
+  try {
+    const updatePromises = orderedLessonIds.map((lessonId, index) => 
+      prisma.lesson.update({
+        where: { id: lessonId },
+        data: { position: index + 1 },
+      })
+    );
+    await Promise.all(updatePromises);
+    res.json({ message: "Lesson reordered successfully."})
+  } catch (err) {
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: err.message });
+  }
+};
