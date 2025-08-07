@@ -4,6 +4,7 @@ const dotenv = require('dotenv')
 const authRoutes = require('./Routes/authRoutes')
 const courseRoutes = require('./Routes/courseRoutes')
 const lessonRoutes = require('./Routes/lessonRoutes')
+const enrollmentRoutes = require('./Routes/enrollmentRoutes')
 
 dotenv.config();
 
@@ -17,5 +18,6 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/courses', courseRoutes);
 app.use('/api/lessons', lessonRoutes);
+app.use('/api/enroll', enrollmentRoutes);
 
 module.exports = app;
