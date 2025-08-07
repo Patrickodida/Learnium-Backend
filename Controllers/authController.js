@@ -3,6 +3,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { StatusCodes } = require("http-status-codes");
 
+// Register user/student
 exports.register = async (req, res) => {
   const { name, email, password } = req.body;
   try {
@@ -22,6 +23,7 @@ exports.register = async (req, res) => {
   }
 };
 
+// Login/Signup user
 exports.login = async (req, res) => {
   const { email, password } = req.body;
   try {
@@ -50,6 +52,7 @@ exports.login = async (req, res) => {
   }
 };
 
+// Retrieve all users
 exports.getAllUsers = async (req, res) => {
   try {
     const users = await prisma.user.findMany({
@@ -70,6 +73,7 @@ exports.getAllUsers = async (req, res) => {
   }
 };
 
+// Retrieve a single user
 exports.getSingleUser = async (req, res) => {
   const { id } = req.params;
 
@@ -89,5 +93,25 @@ exports.getSingleUser = async (req, res) => {
     res
       .status(StatusCodes.INTERNAL_SERVER_ERROR)
       .json({ error: err.message });
+  }
+};
+
+// Allow users to update their profile
+exports.updateUserProfile = async (req, res) => {
+  const { id } = req.params;
+  const { name, email, password } = req.body;
+
+  try {
+    const updateUser = await prisma.user.update({
+      where: { id },
+      data: {
+        name,
+        email,
+        ...(password && { password: await bcrypt.hash(password, 10) }),
+      },
+    });
+    res.status(StatusCodes.OK).json(updateUser);
+  } catch (err) {
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: err.message });
   }
 };
