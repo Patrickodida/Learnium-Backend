@@ -14,3 +14,18 @@ exports.createLesson = async (req, res) => {
         res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: err.message });
     }
 }
+
+// Get all lessons for a specific course 
+exports.getLessonsByCourse = async (req, res) => {
+    const { courseId } = req.params;
+
+    try {
+        const lessons = await prisma.lesson.findMany({
+            where: { courseId },
+        });
+        res.json(lessons);
+    } catch (err) {
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: err.message });
+    }
+};
+
