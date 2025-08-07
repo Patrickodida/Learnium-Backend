@@ -71,3 +71,19 @@ exports.getCourseById = async (req, res) => {
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: err.message });
   }
 };
+
+// Publish/Unpublish course(Allow Instructors to publish/unpublish course)
+exports.toggleCoursePublish = async (req, res) => {
+  const { id } = req.params;
+  const { published } = req.body;
+
+  try {
+    const course = await prisma.course.update({
+      where: { id },
+      data: { published },
+    });
+    res.json(course);
+  } catch (err) {
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: err.message });
+  }
+};
