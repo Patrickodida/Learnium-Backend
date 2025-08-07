@@ -58,6 +58,20 @@ exports.updateLesson = async (req, res) => {
     });
     res.json(lesson);
   } catch (err) {
-    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ Error: err.message });
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: err.message });
   }
+};
+
+// Delete lesson
+exports.deleteLesson = async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        await prisma.lesson.delete({
+            where: { id },
+        });
+        res.json({ message: 'Lesson deleted successfully.'});
+    } catch (err) {
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: err.message });
+    }
 };

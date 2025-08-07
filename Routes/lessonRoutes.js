@@ -1,6 +1,6 @@
 const express = require('express')
 const router = express.Router()
-const { createLesson, getLessonsByCourse, getLesson, updateLesson } = require('../Controllers/lessonController')
+const { createLesson, getLessonsByCourse, getLesson, updateLesson, deleteLesson } = require('../Controllers/lessonController')
 const validateToken = require('../Middleware/validateToken')
 const { validate } = require('../Utils/joi.validator')
 const { createLessonSchema } = require('../Utils/joi.schema')
@@ -13,5 +13,7 @@ router.get('/course/:courseId', getLessonsByCourse);
 router.get('/:id', getLesson);
 // Update Lesson
 router.put('/:id', updateLesson);
+// Delete Lesson
+router.delete('/:id', deleteLesson);
 
 module.exports = router;
