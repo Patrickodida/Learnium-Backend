@@ -45,5 +45,26 @@ exports.getEnrollment = async (req, res) => {
     }
 };
 
+// Mark lesson as completed
+exports.markLessonCompleted = async (req, res) => {
+    const { userId, courseId } = req.params;
+    const { lessonId } = req.body;
+
+    try {
+        const updated = await prisma.enrollment.update({
+            where: { userId_courseId: { userId, courseId } },
+            data: {
+                completedLessons: {
+                    push: lessonId
+                }
+            } 
+        });
+        res.json(updated);
+    } catch (err) {
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: err.message });
+    }
+};
+
+
 
 
