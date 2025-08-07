@@ -30,3 +30,20 @@ exports.getUserEnrollments = async (req, res) => {
     }
 };
 
+// Get single enrollment
+exports.getEnrollment = async (req, res) => {
+    const { userId, courseId } = req.params;
+
+    try {
+        const enrollment = await prisma.enrollment.findUnique({
+            where: { userId_courseId: { userId, courseId } },
+        });
+        if (!enrollment) return res.status(StatusCodes.NOT_FOUND).json({ error: 'Enrollment not found.' });
+        res.json(enrollment);
+    } catch (err) {
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: err.message });
+    }
+};
+
+
+
