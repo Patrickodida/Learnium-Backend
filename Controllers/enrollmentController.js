@@ -65,6 +65,20 @@ exports.markLessonCompleted = async (req, res) => {
     }
 };
 
+// Delete/ Unenroll a user/student from a course
+exports.unenrollUser = async (req, res) => {
+    const { userId, courseId } = req.params;
+
+    try {
+        await prisma.enrollment.delete({
+            where: { userId_courseId: { userId, courseId }},
+        });
+        res.json({ message: "User/student unenrolled successfully."});
+    } catch (err) {
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: err.message });
+    }
+};
+
 
 
 
