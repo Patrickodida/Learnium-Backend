@@ -29,3 +29,18 @@ exports.getLessonsByCourse = async (req, res) => {
     }
 };
 
+// Get a single lesson
+exports.getLesson = async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const lesson = await prisma.lesson.findUnique({
+            where: { id },
+        });
+        if(!lesson) return res.status(StatusCodes.NOT_FOUND).json({ error: "Lesson not found."});
+        res.json(lesson);
+    } catch(err) {
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: err.message});
+    }
+};
+
