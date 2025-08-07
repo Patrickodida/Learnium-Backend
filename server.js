@@ -14,6 +14,14 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+app.get("/", (req, res) => {
+  res.send(`<html>
+      <body style="background-color: #f5f5f5; text-align: center; padding-top: 50px;">
+        <h1 style="color: blue;">Learnium API is running!</h1>
+      </body>
+    </html>`);
+});
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/courses', courseRoutes);
