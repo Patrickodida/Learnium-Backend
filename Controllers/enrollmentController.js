@@ -79,6 +79,25 @@ exports.unenrollUser = async (req, res) => {
     }
 };
 
+// Retrieve all users/students enrolled in course
+exports.getCourseEnrollments = async (req, res) => {
+    const { courseId } = req.params;
+
+    try {
+        const enrollments = await prisma.enrollment.findMany({
+            where: { courseId },
+            include: {
+                user: {
+                    select: { id: true, name: true, email: true },
+                }
+            }
+        });
+        res.json(enrollments);
+    } catch (err) {
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: err.message });
+    }
+};
+
 
 
 
