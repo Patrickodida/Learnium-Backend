@@ -10,10 +10,24 @@ exports.initiatePayment = async (req, res) => {
 
   // Validate amount > 0 and supported currency (assumed USD/GHS etc)
   if (!amount || amount <= 0) {
-    return res.status(StatusCodes.BAD_REQUEST).json({ error: "Invalid amount" });
+    return res
+      .status(StatusCodes.BAD_REQUEST)
+      .json({ error: "Invalid amount" });
   }
 
   try {
+    // Fetch user details from DB since JWT doesn't contain name/email
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { name: true, email: true },
+    });
+
+    if (!user) {
+      return res
+        .status(StatusCodes.NOT_FOUND)
+        .json({ error: "User not found" });
+    }
+
     // Create a pending payment record before payment
     const payment = await prisma.payment.create({
       data: {
@@ -33,8 +47,8 @@ exports.initiatePayment = async (req, res) => {
       currency,
       redirect_url: `${process.env.FRONTEND_URL}/payment-success?paymentId=${payment.id}`,
       customer: {
-        email: req.user.email,
-        name: req.user.name,
+        email: user.email,
+        name: user.name,
       },
       customizations: {
         title: "Learnium Course Payment",
@@ -74,7 +88,9 @@ exports.initiatePayment = async (req, res) => {
         .json({ error: "Failed to initiate payment" });
     }
   } catch (err) {
-    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: err.message });
+    return res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .json({ error: err.message });
   }
 };
 
@@ -98,7 +114,9 @@ exports.verifyPaymentWebhook = async (req, res) => {
     });
 
     if (!payment) {
-      return res.status(StatusCodes.NOT_FOUND).json({ error: "Payment not found" });
+      return res
+        .status(StatusCodes.NOT_FOUND)
+        .json({ error: "Payment not found" });
     }
 
     if (status === "successful") {
@@ -118,7 +136,9 @@ exports.verifyPaymentWebhook = async (req, res) => {
 
     return res.status(StatusCodes.OK).json({ message: "Webhook processed" });
   } catch (err) {
-    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: err.message });
+    return res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .json({ error: err.message });
   }
 };
 
@@ -156,11 +176,15 @@ exports.getPaymentById = async (req, res) => {
     });
 
     if (!payment) {
-      return res.status(StatusCodes.NOT_FOUND).json({ error: "Payment not found" });
+      return res
+        .status(StatusCodes.NOT_FOUND)
+        .json({ error: "Payment not found" });
     }
 
     if (user.role !== "ADMIN" && payment.userId !== user.id) {
-      return res.status(StatusCodes.UNAUTHORIZED).json({ error: "Unauthorized" });
+      return res
+        .status(StatusCodes.UNAUTHORIZED)
+        .json({ error: "Unauthorized" });
     }
 
     res.status(StatusCodes.OK).json(payment);
@@ -180,7 +204,9 @@ exports.deletePayment = async (req, res) => {
 
   try {
     await prisma.payment.delete({ where: { id } });
-    res.status(StatusCodes.OK).json({ message: "Payment deleted successfully" });
+    res
+      .status(StatusCodes.OK)
+      .json({ message: "Payment deleted successfully" });
   } catch (err) {
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: err.message });
   }
