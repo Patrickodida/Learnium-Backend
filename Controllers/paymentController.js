@@ -8,6 +8,9 @@ exports.initiatePayment = async (req, res) => {
   const { amount, currency, courseId } = req.body;
   const userId = req.user.id;
 
+  console.log("User ID from token:", userId);  // logs userId from token
+  console.log("Payment request body:", req.body);  // logs request body
+
   // Validate amount > 0 and supported currency (assumed USD/GHS etc)
   if (!amount || amount <= 0) {
     return res
@@ -21,6 +24,7 @@ exports.initiatePayment = async (req, res) => {
       where: { id: userId },
       select: { name: true, email: true },
     });
+    console.log("User fetched from DB:", user);  // logs user info fetched from DB
 
     if (!user) {
       return res
@@ -38,9 +42,10 @@ exports.initiatePayment = async (req, res) => {
         courseId,
       },
     });
+    console.log("Payment created:", payment);  // logs newly created payment record
 
     // Prepare Flutterwave payment data
-    const tx_ref = uuidv4(); // unique transaction ref
+    /* const tx_ref = uuidv4(); // unique transaction ref
     const flutterwaveData = {
       tx_ref,
       amount,
@@ -86,7 +91,8 @@ exports.initiatePayment = async (req, res) => {
       return res
         .status(StatusCodes.BAD_REQUEST)
         .json({ error: "Failed to initiate payment" });
-    }
+    } */
+   return res.status(StatusCodes.OK).json({ paymentId: payment.id });
   } catch (err) {
     return res
       .status(StatusCodes.INTERNAL_SERVER_ERROR)
