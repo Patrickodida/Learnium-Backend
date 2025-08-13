@@ -47,7 +47,7 @@ exports.initiatePayment = async (req, res) => {
     // Paystack requires currency units (cents)
     const paystackAmount = convertedAmountKES * 100;
 
-    console.log(`Converted ${amount} UGX to ${convertedAmountNGN} NGN (${paystackAmount} kobo)`);
+    console.log(`Converted ${amount} UGX to ${convertedAmountKES} KES (${paystackAmount} bob)`);
 
     // Log secret key to confirm it's loaded ---
     console.log("Paystack secret loaded:", !!process.env.PAYSTACK_SECRET_KEY);
