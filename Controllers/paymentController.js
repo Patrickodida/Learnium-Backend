@@ -41,27 +41,49 @@ exports.initiatePayment = async (req, res) => {
     });
     console.log("Payment created:", payment);
 
+    // Ensure Paystack amount is an integer ---
+    const paystackAmount = Math.floor(amount); // Paystack requires integer
+
+    // Log secret key to confirm it's loaded ---
+    console.log("Paystack secret loaded:", !!process.env.PAYSTACK_SECRET_KEY);
+    if (!process.env.PAYSTACK_SECRET_KEY) {
+      return res
+        .status(StatusCodes.INTERNAL_SERVER_ERROR)
+        .json({ error: "Paystack secret key not configured" });
+    }
+
     // Paystack payment initialization
     const tx_ref = uuidv4(); // unique transaction reference
     const paystackData = {
       email: user.email,
-      amount: amount,
+      amount: paystackAmount,
       reference: tx_ref,
       currency: "UGX",
       callback_url: `${process.env.FRONTEND_URL}/payment-success?paymentId=${payment.id}`,
       metadata: { paymentId: payment.id, courseId },
     };
 
-    const response = await axios.post(
-      "https://api.paystack.co/transaction/initialize",
-      paystackData,
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
+    // Wrap Axios call with try-catch for detailed Paystack errors
+    let response;
+    try {
+      response = await axios.post(
+        "https://api.paystack.co/transaction/initialize",
+        paystackData,
+        {
+          headers: {
+            Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      console.log("Paystack response:", response.data);
+    } catch (err) {
+      console.error("Paystack API error:", err.response?.data || err.message);
+      return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+        error: "Paystack API error",
+        details: err.response?.data,
+      });
+    }
 
     if (response.data.status) {
       // Save tx_ref in payment record for verification later
@@ -89,31 +111,47 @@ exports.initiatePayment = async (req, res) => {
 // Verify payment webhook from Paystack
 exports.verifyPaymentWebhook = async (req, res) => {
   try {
+    console.log("Webhook payload received:", req.body); // log entire webhook payload
     const { event, data } = req.body;
 
+    if (!event || !data) {
+      console.error("Invalid webhook format: missing event or data");
+      return res.status(StatusCodes.BAD_REQUEST).json({ error: "Invalid webhook format" });
+    }
+
     if (event !== "charge.success") {
+      console.log(`Ignored event type: ${event}`);
       return res.status(StatusCodes.OK).json({ message: "Event ignored" });
     }
 
     const { reference, status } = data;
+
+    if (!reference) {
+      console.error("No transaction reference in webhook data");
+      return res.status(StatusCodes.BAD_REQUEST).json({ error: "Missing transaction reference" });
+    }
 
     const payment = await prisma.payment.findFirst({
       where: { transactionId: reference },
     });
 
     if (!payment) {
+      console.error("Payment not found for reference:", reference);
       return res
         .status(StatusCodes.NOT_FOUND)
         .json({ error: "Payment not found" });
     }
 
+    const newStatus = status === "success" ? "SUCCESS" : "FAILED";
     await prisma.payment.update({
       where: { id: payment.id },
-      data: { status: status === "success" ? "SUCCESS" : "FAILED" },
+      data: { status: newStatus === "success" ? "SUCCESS" : "FAILED" },
     });
+    console.log(`Payment ${payment.id} updated to status: ${newStatus}`);
 
     return res.status(StatusCodes.OK).json({ message: "Webhook processed" });
   } catch (err) {
+    console.error("Webhook processing error:", err.message);
     return res
       .status(StatusCodes.INTERNAL_SERVER_ERROR)
       .json({ error: err.message });
