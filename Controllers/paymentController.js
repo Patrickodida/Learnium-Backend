@@ -30,10 +30,11 @@ exports.initiatePayment = async (req, res) => {
         .json({ error: "User not found" });
     }
 
+    // Store original currency from request (e.g., UGX) instead of hardcoding KES
     const payment = await prisma.payment.create({
       data: {
         amount,
-        currency: "KES",
+        currency: currency || "UGX", // keep original currency
         status: "PENDING",
         userId,
         courseId,
@@ -41,8 +42,18 @@ exports.initiatePayment = async (req, res) => {
     });
     console.log("Payment created:", payment);
 
-    // Convert UGX to KES (approx rate 1 UGX = 0.036 KES)
-    const convertedAmountKES = Math.floor(amount * 0.036);
+    // Convert only if original currency is UGX
+    let convertedAmountKES;
+    if ((currency || "UGX").toUpperCase() === "UGX") {
+      // approx rate 1 UGX = 0.036 KES
+      convertedAmountKES = Math.floor(amount * 0.036);
+    } else if ((currency || "UGX").toUpperCase() === "KES") {
+      convertedAmountKES = amount; // no conversion
+    } else {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        error: `Unsupported original currency: ${currency}`,
+      });
+    }
 
     // Paystack requires currency units (cents)
     const paystackAmount = convertedAmountKES * 100;
@@ -63,7 +74,7 @@ exports.initiatePayment = async (req, res) => {
       email: user.email,
       amount: paystackAmount,
       reference: tx_ref,
-      currency: "NGN",
+      currency: "KES",
       callback_url: `${process.env.FRONTEND_URL}/payment-success?paymentId=${payment.id}`,
       metadata: { paymentId: payment.id, courseId },
     };
