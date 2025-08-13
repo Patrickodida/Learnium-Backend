@@ -33,7 +33,7 @@ exports.initiatePayment = async (req, res) => {
     const payment = await prisma.payment.create({
       data: {
         amount,
-        currency,
+        currency: "NGN",
         status: "PENDING",
         userId,
         courseId,
@@ -41,8 +41,13 @@ exports.initiatePayment = async (req, res) => {
     });
     console.log("Payment created:", payment);
 
-    // Ensure Paystack amount is an integer ---
-    const paystackAmount = Math.floor(amount); // Paystack requires integer
+    // Convert UGX to NGN (approx rate 1 UGX = 0.25 NGN)
+    const convertedAmountNGN = Math.floor(amount * 0.25);
+
+    // Paystack requires amount in kobo (multiply NGN by 100)
+    const paystackAmount = convertedAmountNGN * 100;
+
+    console.log(`Converted ${amount} UGX to ${convertedAmountNGN} NGN (${paystackAmount} kobo)`);
 
     // Log secret key to confirm it's loaded ---
     console.log("Paystack secret loaded:", !!process.env.PAYSTACK_SECRET_KEY);
@@ -58,7 +63,7 @@ exports.initiatePayment = async (req, res) => {
       email: user.email,
       amount: paystackAmount,
       reference: tx_ref,
-      currency: "UGX",
+      currency: "NGN",
       callback_url: `${process.env.FRONTEND_URL}/payment-success?paymentId=${payment.id}`,
       metadata: { paymentId: payment.id, courseId },
     };
@@ -111,6 +116,23 @@ exports.initiatePayment = async (req, res) => {
 // Verify payment webhook from Paystack
 exports.verifyPaymentWebhook = async (req, res) => {
   try {
+    // Paystack signature verification
+    const signature = req.headers["x-paystack-signature"];
+    if (!signature) {
+      console.error("Missing Paystack signature");
+      return res.status(StatusCodes.UNAUTHORIZED).json({ error: "Missing signature" });
+    }
+
+    const hash = crypto
+      .createHmac("sha512", process.env.PAYSTACK_SECRET_KEY)
+      .update(JSON.stringify(req.body))
+      .digest("hex");
+
+    if (hash !== signature) {
+      console.error("Invalid Paystack signature");
+      return res.status(StatusCodes.UNAUTHORIZED).json({ error: "Invalid signature" });
+    }
+
     console.log("Webhook payload received:", req.body); // log entire webhook payload
     const { event, data } = req.body;
 
