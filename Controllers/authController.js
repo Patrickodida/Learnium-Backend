@@ -115,3 +115,36 @@ exports.updateUserProfile = async (req, res) => {
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: err.message });
   }
 };
+
+// Delete user (admin only)
+exports.deleteUser = async (req, res) => {
+  const { id } = req.params;
+  const requester = req.user;
+
+  // Check if requester is ADMIN
+  if (requester.role !== "ADMIN") {
+    return res
+      .status(StatusCodes.UNAUTHORIZED)
+      .json({ error: "Unauthorized: Admins only" });
+  }
+
+  try {
+    // Check if user exists
+    const user = await prisma.user.findUnique({ where: { id } });
+    if (!user) {
+      return res
+        .status(StatusCodes.NOT_FOUND)
+        .json({ error: "User not found" });
+    }
+
+    // Delete user
+    await prisma.user.delete({ where: { id } });
+
+    res.status(StatusCodes.OK).json({ message: "User deleted successfully" });
+  } catch (err) {
+    res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .json({ error: "Failed to delete user", details: err.message });
+  }
+};
+
