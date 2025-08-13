@@ -75,6 +75,8 @@ exports.initiatePayment = async (req, res) => {
         },
       }
     );
+    console.log("Flutterwave key length:", process.env.FLUTTERWAVE_SECRET_KEY?.length);
+
 
     if (response.data.status === "success") {
       // Save tx_ref in payment record for future verification
@@ -94,7 +96,7 @@ exports.initiatePayment = async (req, res) => {
     }
 
    return res.status(StatusCodes.OK).json({ paymentId: payment.id });
-   
+
   } catch (err) {
     return res
       .status(StatusCodes.INTERNAL_SERVER_ERROR)
