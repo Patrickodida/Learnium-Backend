@@ -3,15 +3,14 @@ const { StatusCodes } = require("http-status-codes");
 const axios = require("axios");
 const { v4: uuidv4 } = require("uuid");
 
-// Initiate payment with Flutterwave
+// Initiate payment with Paystack
 exports.initiatePayment = async (req, res) => {
   const { amount, currency, courseId } = req.body;
   const userId = req.user.id;
 
-  console.log("User ID from token:", userId);  // logs userId from token
-  console.log("Payment request body:", req.body);  // logs request body
+  console.log("User ID from token:", userId);
+  console.log("Payment request body:", req.body);
 
-  // Validate amount > 0 and supported currency (assumed USD/GHS etc)
   if (!amount || amount <= 0) {
     return res
       .status(StatusCodes.BAD_REQUEST)
@@ -19,12 +18,11 @@ exports.initiatePayment = async (req, res) => {
   }
 
   try {
-    // Fetch user details from DB since JWT doesn't contain name/email
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: { name: true, email: true },
     });
-    console.log("User fetched from DB:", user);  // logs user info fetched from DB
+    console.log("User fetched from DB:", user);
 
     if (!user) {
       return res
@@ -32,7 +30,6 @@ exports.initiatePayment = async (req, res) => {
         .json({ error: "User not found" });
     }
 
-    // Create a pending payment record before payment
     const payment = await prisma.payment.create({
       data: {
         amount,
@@ -42,51 +39,39 @@ exports.initiatePayment = async (req, res) => {
         courseId,
       },
     });
-    console.log("Payment created:", payment);  // logs newly created payment record
+    console.log("Payment created:", payment);
 
-    // Prepare Flutterwave payment data
-    const tx_ref = uuidv4(); // unique transaction ref
-    const flutterwaveData = {
-      tx_ref,
-      amount,
-      currency,
-      redirect_url: `${process.env.FRONTEND_URL}/payment-success?paymentId=${payment.id}`,
-      customer: {
-        email: user.email,
-        name: user.name,
-      },
-      customizations: {
-        title: "Learnium Course Payment",
-        description: `Payment for course ${courseId}`,
-      },
-      meta: {
-        paymentId: payment.id,
-      },
+    // Paystack payment initialization
+    const tx_ref = uuidv4(); // unique transaction reference
+    const paystackData = {
+      email: user.email,
+      amount: amount,
+      reference: tx_ref,
+      currency: "UGX",
+      callback_url: `${process.env.FRONTEND_URL}/payment-success?paymentId=${payment.id}`,
+      metadata: { paymentId: payment.id, courseId },
     };
 
-    // Call Flutterwave API to get payment link
     const response = await axios.post(
-      "https://api.flutterwave.cloud/developersandbox/payments",
-      flutterwaveData,
+      "https://api.paystack.co/transaction/initialize",
+      paystackData,
       {
         headers: {
-          Authorization: `Bearer ${process.env.FLUTTERWAVE_SECRET_KEY}`,
+          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
           "Content-Type": "application/json",
         },
       }
     );
-    console.log("Flutterwave key length:", process.env.FLUTTERWAVE_SECRET_KEY?.length);
 
-
-    if (response.data.status === "success") {
-      // Save tx_ref in payment record for future verification
+    if (response.data.status) {
+      // Save tx_ref in payment record for verification later
       await prisma.payment.update({
         where: { id: payment.id },
         data: { transactionId: tx_ref },
       });
 
       return res.status(StatusCodes.OK).json({
-        paymentLink: response.data.data.link,
+        paymentLink: response.data.data.authorization_url,
         paymentId: payment.id,
       });
     } else {
@@ -94,9 +79,6 @@ exports.initiatePayment = async (req, res) => {
         .status(StatusCodes.BAD_REQUEST)
         .json({ error: "Failed to initiate payment" });
     }
-
-   return res.status(StatusCodes.OK).json({ paymentId: payment.id });
-
   } catch (err) {
     return res
       .status(StatusCodes.INTERNAL_SERVER_ERROR)
@@ -104,23 +86,19 @@ exports.initiatePayment = async (req, res) => {
   }
 };
 
-// Verify payment webhook from Flutterwave (called by Flutterwave, no auth)
+// Verify payment webhook from Paystack
 exports.verifyPaymentWebhook = async (req, res) => {
   try {
     const { event, data } = req.body;
 
-    if (event !== "charge.completed") {
-      // We only care about completed charges
+    if (event !== "charge.success") {
       return res.status(StatusCodes.OK).json({ message: "Event ignored" });
     }
 
-    // Verify signature - optional for extra security, depends on setup
+    const { reference, status } = data;
 
-    const { tx_ref, status, id: flutterwaveTransactionId } = data;
-
-    // Find the payment in DB by tx_ref (stored as transactionId)
     const payment = await prisma.payment.findFirst({
-      where: { transactionId: tx_ref },
+      where: { transactionId: reference },
     });
 
     if (!payment) {
@@ -129,20 +107,10 @@ exports.verifyPaymentWebhook = async (req, res) => {
         .json({ error: "Payment not found" });
     }
 
-    if (status === "successful") {
-      // Update payment status to SUCCESS
-      await prisma.payment.update({
-        where: { id: payment.id },
-        data: { status: "SUCCESS" },
-      });
-      // Here you could also enroll user automatically, send email, etc.
-    } else {
-      // Update payment status to FAILED
-      await prisma.payment.update({
-        where: { id: payment.id },
-        data: { status: "FAILED" },
-      });
-    }
+    await prisma.payment.update({
+      where: { id: payment.id },
+      data: { status: status === "success" ? "SUCCESS" : "FAILED" },
+    });
 
     return res.status(StatusCodes.OK).json({ message: "Webhook processed" });
   } catch (err) {
@@ -174,7 +142,7 @@ exports.getAllPayments = async (req, res) => {
   }
 };
 
-// Get single payment by ID (only admin or owner)
+// Get single payment by ID
 exports.getPaymentById = async (req, res) => {
   const { id } = req.params;
   const user = req.user;

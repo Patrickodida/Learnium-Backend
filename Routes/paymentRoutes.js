@@ -11,13 +11,11 @@ const {
 const { validate } = require("../Utils/joi.validator");
 const { initiatePaymentSchema } = require("../Utils/joi.schema");
 
-// Joi validation schema - import and apply if you want, left out here for brevity
-
 // Initiate payment (user)
 router.post("/", validateToken, validate(initiatePaymentSchema), initiatePayment);
 
-// Flutterwave webhook (no auth)
-router.post("/webhook", express.json({ type: "application/json" }), verifyPaymentWebhook);
+// Paystack webhook (no auth)
+router.post("/paystack-webhook", express.json({ type: "application/json" }), verifyPaymentWebhook);
 
 // Get all payments (admin or user own)
 router.get("/", validateToken, getAllPayments);
