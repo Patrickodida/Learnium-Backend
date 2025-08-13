@@ -33,7 +33,7 @@ exports.initiatePayment = async (req, res) => {
     const payment = await prisma.payment.create({
       data: {
         amount,
-        currency: "NGN",
+        currency: "KES",
         status: "PENDING",
         userId,
         courseId,
@@ -41,11 +41,11 @@ exports.initiatePayment = async (req, res) => {
     });
     console.log("Payment created:", payment);
 
-    // Convert UGX to NGN (approx rate 1 UGX = 0.25 NGN)
-    const convertedAmountNGN = Math.floor(amount * 0.25);
+    // Convert UGX to KES (approx rate 1 UGX = 0.036 KES)
+    const convertedAmountKES = Math.floor(amount * 0.036);
 
-    // Paystack requires amount in kobo (multiply NGN by 100)
-    const paystackAmount = convertedAmountNGN * 100;
+    // Paystack requires currency units (cents)
+    const paystackAmount = convertedAmountKES * 100;
 
     console.log(`Converted ${amount} UGX to ${convertedAmountNGN} NGN (${paystackAmount} kobo)`);
 
