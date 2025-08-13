@@ -66,7 +66,7 @@ exports.initiatePayment = async (req, res) => {
 
     // Call Flutterwave API to get payment link
     const response = await axios.post(
-      "https://api.flutterwave.com/v3/payments",
+      "https://api.flutterwave.cloud/developersandbox/payments",
       flutterwaveData,
       {
         headers: {
