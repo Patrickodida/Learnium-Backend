@@ -2,6 +2,7 @@ const prisma = require("../Models/prismaClient");
 const { StatusCodes } = require("http-status-codes");
 const axios = require("axios");
 const { v4: uuidv4 } = require("uuid");
+const crypto = require("crypto");
 
 // Initiate payment with Paystack
 exports.initiatePayment = async (req, res) => {
@@ -181,6 +182,30 @@ exports.verifyPaymentWebhook = async (req, res) => {
       data: { status: newStatus === "success" ? "SUCCESS" : "FAILED" },
     });
     console.log(`Payment ${payment.id} updated to status: ${newStatus}`);
+
+    // Auto-enroll after payment success
+    if (newStatus === "SUCCESS") {
+      console.log("Auto-enrolling user since payment succeeded...");
+
+      const existingEnrollment = await prisma.enrollment.findFirst({
+        where: {
+          userId: payment.userId,
+          courseId: payment.courseId
+        }
+      });
+
+      if (!existingEnrollment) {
+        await prisma.enrollment.create({
+          data: {
+            userId: payment.userId,
+            courseId: payment.courseId
+          }
+        });
+        console.log(`User ${payment.userId} enrolled in course ${payment.courseId}`);
+      } else {
+        console.log("User already enrolled, skipping auto-enroll.");
+      }
+    }
 
     return res.status(StatusCodes.OK).json({ message: "Webhook processed" });
   } catch (err) {
