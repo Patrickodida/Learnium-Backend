@@ -65,6 +65,24 @@ exports.markLessonCompleted = async (req, res) => {
     }
 };
 
+// Get completed lessons for a user in a course
+exports.getCompletedLessons = async (req, res) => {
+    const { userId, courseId } = req.params;
+
+    try {
+        const enrollment = await prisma.enrollment.findUnique({
+            where: { userId_courseId: { userId, courseId } },
+            select: { completedLessons: true }
+        });
+        if (!enrollment) {
+            return res.status(StatusCodes.NOT_FOUND).json({ error: "Enrollment not found." });
+        }
+        res.json({ completedLessonIds: enrollment.completedLessons });
+    } catch (err) {
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: err.message });
+    }
+};
+
 // Delete/ Unenroll a user/student from a course
 exports.unenrollUser = async (req, res) => {
     const { userId, courseId } = req.params;
