@@ -3,7 +3,8 @@ const { StatusCodes } = require("http-status-codes");
 
 // Create a course
 exports.createCourse = async (req, res) => {
-  const { title, description, thumbnail, price, instructorId } = req.body;
+  const { title, description, thumbnail, price } = req.body;
+  const instructorId = req.user.id;
   try {
     const course = await prisma.course.create({
       data: { title, description, thumbnail, price, instructorId, published: false },
@@ -47,8 +48,8 @@ exports.getCourseById = async (req, res) => {
 
 // Retrieve courses for a specific instructor 
 exports.getCoursesByInstructor = async (req, res) => {
-  const { instructorId } = req.params;
   try {
+    const instructorId = req.user.id;
     const courses = await prisma.course.findMany({
       where: { instructorId },
       include: { instructor: true, lessons: true },
@@ -89,7 +90,7 @@ exports.deleteCourse = async (req, res) => {
 // Publish/Unpublish course(Allow Instructors to publish/unpublish course)
 exports.toggleCoursePublish = async (req, res) => {
   const { id } = req.params;
-  
+
   try {
     // Fetch current status
     const course = await prisma.course.findUnique({ where: { id } });

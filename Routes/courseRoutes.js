@@ -11,7 +11,7 @@ router.put('/:id', validateToken, isAuthenticated, hasRole('INSTRUCTOR', 'ADMIN'
 router.delete('/:id', validateToken, isAuthenticated, hasRole('INSTRUCTOR', 'ADMIN'), deleteCourse);
 router.patch('/:id/publish', validateToken, isAuthenticated, hasRole('INSTRUCTOR', 'ADMIN'), toggleCoursePublish);
 
-// Route to get all courses by instructor
-router.get('/instructor/:instructorId', validateToken, isAuthenticated, hasRole('INSTRUCTOR'), getCoursesByInstructor);
+// ✅ Updated route: instructor fetches only their own courses
+router.get('/instructor', validateToken, isAuthenticated, hasRole('INSTRUCTOR'), getCoursesByInstructor);
 
 module.exports = router;
