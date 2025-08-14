@@ -6,7 +6,7 @@ exports.createCourse = async (req, res) => {
   const { title, description, thumbnail, price, instructorId } = req.body;
   try {
     const course = await prisma.course.create({
-      data: { title, description, thumbnail, price, instructorId },
+      data: { title, description, thumbnail, price, instructorId, published: false },
     });
     res.status(StatusCodes.CREATED).json(course);
   } catch (err) {
@@ -21,6 +21,39 @@ exports.getAllCourses = async (req, res) => {
       include: { instructor: true },
     });
     res.json(courses);
+  } catch (err) {
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: err.message });
+  }
+};
+
+// Retrieve single course details
+exports.getCourseById = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const course = await prisma.course.findUnique({
+      where: { id },
+      include: {
+        lessons: true,
+        instructor: true,
+      },
+    });
+    if (!course) return res.status(StatusCodes.NOT_FOUND).json({ error: "Course not found."});
+    res.status(StatusCodes.OK).json(course);
+  } catch (err) {
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: err.message });
+  }
+};
+
+// Retrieve courses for a specific instructor 
+exports.getCoursesByInstructor = async (req, res) => {
+  const { instructorId } = req.params;
+  try {
+    const courses = await prisma.course.findMany({
+      where: { instructorId },
+      include: { instructor: true, lessons: true },
+    });
+    res.status(StatusCodes.OK).json(courses);
   } catch (err) {
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: err.message });
   }
@@ -53,36 +86,22 @@ exports.deleteCourse = async (req, res) => {
   }
 };
 
-// Retrieve single course details
-exports.getCourseById = async (req, res) => {
-  const { id } = req.params;
-
-  try {
-    const course = await prisma.course.findUnique({
-      where: { id },
-      include: {
-        lessons: true,
-        instructor: true,
-      },
-    });
-    if (!course) return res.status(StatusCodes.NOT_FOUND).json({ error: "Course not found."});
-    res.status(StatusCodes.OK).json(course);
-  } catch (err) {
-    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: err.message });
-  }
-};
-
 // Publish/Unpublish course(Allow Instructors to publish/unpublish course)
 exports.toggleCoursePublish = async (req, res) => {
   const { id } = req.params;
-  const { published } = req.body;
-
+  
   try {
-    const course = await prisma.course.update({
+    // Fetch current status
+    const course = await prisma.course.findUnique({ where: { id } });
+    if (!course) return res.status(StatusCodes.NOT_FOUND).json({ error: "Course not found." });
+
+    // Toggle published status
+    const updatedCourse = await prisma.course.update({
       where: { id },
-      data: { published },
+      data: { published: !course.published },
     });
-    res.json(course);
+
+    res.json(updatedCourse);
   } catch (err) {
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: err.message });
   }
