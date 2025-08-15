@@ -49,11 +49,19 @@ exports.getCourseById = async (req, res) => {
 // Retrieve courses for a specific instructor 
 exports.getCoursesByInstructor = async (req, res) => {
   try {
-    const instructorId = req.user.id;
+    const instructorId = req.user?.id;
+
+    if (!instructorId) {
+      return res.status(400).json({ error: "Instructor ID missing from token" });
+    }
+
     const courses = await prisma.course.findMany({
       where: { instructorId },
       include: { instructor: true, lessons: true },
     });
+    console.log("Instructor ID:", instructorId);
+    console.log("Courses found:", courses.length);
+    
     res.status(StatusCodes.OK).json(courses);
   } catch (err) {
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: err.message });
