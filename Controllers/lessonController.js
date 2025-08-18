@@ -5,11 +5,11 @@ const { StatusCodes } = require("http-status-codes");
 exports.createLesson = async (req, res) => {
   console.log("REQ.USER:", req.user);
   console.log("REQ.BODY:", req.body);
-  const { title, videoUrl, courseId } = req.body;
+  const { title, videoUrl, courseId, position } = req.body;
 
   try {
     const lesson = await prisma.lesson.create({
-      data: { title, videoUrl, courseId },
+      data: { title, videoUrl, courseId, position: position ?? 0 },
     });
     res.status(StatusCodes.CREATED).json(lesson);
   } catch (err) {
