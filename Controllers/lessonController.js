@@ -3,8 +3,8 @@ const { StatusCodes } = require("http-status-codes");
 
 // Create a new lesson
 exports.createLesson = async (req, res) => {
-  console.log("REQ.USER:", req.user);
   console.log("REQ.BODY:", req.body);
+  console.log("Course exists?", await prisma.course.findUnique({ where: { id: req.body.courseId }}));
   const { title, videoUrl, courseId, position } = req.body;
 
   try {
