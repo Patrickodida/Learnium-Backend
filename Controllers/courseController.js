@@ -4,6 +4,7 @@ const { StatusCodes } = require("http-status-codes");
 // Create a course
 exports.createCourse = async (req, res) => {
   console.log("REQ.USER:", req.user);
+  console.log("REQ.BODY:", req.body);
   const { title, description, thumbnail, price } = req.body;
   const instructorId = req.user.id;
   if (!instructorId) return res.status(401).json({ error: "Instructor not authenticated" });
