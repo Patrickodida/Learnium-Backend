@@ -5,7 +5,9 @@ const { StatusCodes } = require("http-status-codes");
 exports.createCourse = async (req, res) => {
   console.log("REQ.USER:", req.user);
   console.log("REQ.BODY:", req.body);
-  const { title, description, thumbnail, price } = req.body;
+  const { title, description, thumbnail } = req.body;
+  // Convert price to number
+  const price = Number(req.body.price);
   const instructorId = req.user.id;
   if (!instructorId) return res.status(401).json({ error: "Instructor not authenticated" });
   try {
@@ -74,6 +76,10 @@ exports.getCoursesByInstructor = async (req, res) => {
 // Update course
 exports.updateCourse = async (req, res) => {
   const { id } = req.params;
+  // Convert price to number
+  if (req.body.price !== undefined) {
+    req.body.price = Number(req.body.price);
+  }
   try {
     const course = await prisma.course.update({
       where: { id },
