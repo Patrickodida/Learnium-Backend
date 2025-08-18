@@ -6,7 +6,7 @@ const { validate } = require('../Utils/joi.validator')
 const { createLessonSchema } = require('../Utils/joi.schema')
 
 // Create a Lesson / Instructor Only
-router.post('/', validate(createLessonSchema), validateToken, createLesson);
+router.post('/:courseId', validate(createLessonSchema), validateToken, createLesson);
 // Retrieve all courses by courseId
 router.get('/course/:courseId', getLessonsByCourse);
 // Reorder courses
